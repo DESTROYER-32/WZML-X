@@ -10,7 +10,11 @@ from ...core.torrent_manager import TorrentManager, is_metadata, aria2_name
 from ..ext_utils.bot_utils import bt_selection_buttons
 from ..ext_utils.files_utils import clean_unwanted
 from ..ext_utils.status_utils import get_task_by_gid
-from ..ext_utils.task_manager import stop_duplicate_check, limit_checker
+from ..ext_utils.task_manager import (
+    stop_duplicate_check,
+    limit_checker,
+    check_blacklisted_keywords,
+)
 from ..mirror_leech_utils.status_utils.aria2_status import Aria2Status
 from ..telegram_helper.message_utils import (
     send_message,
@@ -53,6 +57,15 @@ async def _on_download_started(api, data):
             task.listener.is_torrent = True
 
         task.listener.name = aria2_name(download)
+        is_bl, bl_kw = await check_blacklisted_keywords(
+            task.listener, task.listener.name
+        )
+        if is_bl:
+            await TorrentManager.aria2_remove(download)
+            await task.listener.on_download_error(
+                f"Task cancelled! Name contains blacklisted keyword: <code>{bl_kw}</code>"
+            )
+            return
         msg, button = await stop_duplicate_check(task.listener)
         if msg:
             await TorrentManager.aria2_remove(download)

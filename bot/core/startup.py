@@ -21,6 +21,7 @@ from .. import (
     var_list,
     user_data,
     excluded_extensions,
+    blacklisted_keywords,
     nzb_options,
     qbit_options,
     rss_dict,
@@ -302,6 +303,11 @@ async def update_variables():
         for x in fx:
             x = x.lstrip(".")
             excluded_extensions.append(x.strip().lower())
+
+    if Config.BLACKLISTED_KEYWORDS:
+        kw_list = Config.BLACKLISTED_KEYWORDS.split()
+        for x in kw_list:
+            blacklisted_keywords.append(x.strip().lower())
 
     if Config.GDRIVE_ID:
         drives_names.append("Main")

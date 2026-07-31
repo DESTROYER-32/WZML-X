@@ -41,7 +41,11 @@ from ..ext_utils.files_utils import (
 )
 from ..ext_utils.links_utils import is_gdrive_id
 from ..ext_utils.status_utils import get_readable_file_size, get_readable_time
-from ..ext_utils.task_manager import check_running_tasks, start_from_queued
+from ..ext_utils.task_manager import (
+    check_running_tasks,
+    check_blacklisted_keywords,
+    start_from_queued,
+)
 from ..mirror_leech_utils.uphoster_utils.multi_upload import MultiUphosterUpload
 from ..mirror_leech_utils.gdrive_utils.upload import GoogleDriveUpload
 from ..mirror_leech_utils.rclone_utils.transfer import RcloneTransferHelper
@@ -212,6 +216,13 @@ class TaskListener(TaskConfig):
         self.size = await get_path_size(dl_path)
         self.download_size = self.size
         self.is_file = await aiopath.isfile(dl_path)
+
+        is_bl, bl_kw = await check_blacklisted_keywords(self, self.name)
+        if is_bl:
+            await self.on_download_error(
+                f"Task cancelled! Name contains blacklisted keyword: <code>{bl_kw}</code>"
+            )
+            return
 
         download_time = time() - getattr(self, "download_start_time", time())
         self.avg_download_speed = (
@@ -645,7 +656,11 @@ class TaskListener(TaskConfig):
         error_msg = (
             error
             if isinstance(error, str)
-            and error.startswith("File/Folder is already available")
+            and (
+                error.startswith("File/Folder is already available")
+                or "<code>" in error
+                or "<b>" in error
+            )
             else escape(str(error))
         )
         msg = (

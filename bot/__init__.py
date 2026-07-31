@@ -85,6 +85,7 @@ var_list = [
 ]
 auth_chats = {}
 excluded_extensions = ["aria2", "!qB"]
+blacklisted_keywords = []
 drives_names = []
 drives_ids = []
 index_urls = []

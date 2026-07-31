@@ -24,6 +24,7 @@ from .. import (
     categories_dict,
     drives_ids,
     drives_names,
+    blacklisted_keywords,
     index_urls,
     intervals,
     jd_listener_lock,
@@ -143,6 +144,7 @@ DEFAULT_DESP = {
     "DISABLE_YTDLP": "Disable YouTube/YT-DLP downloads. Default: False.",
     "EQUAL_SPLITS": "Split files into equal parts of LEECH_SPLIT_SIZE. Default: False.",
     "EXCLUDED_EXTENSIONS": "File extensions to exclude from upload/clone. Space-separated.",
+    "BLACKLISTED_KEYWORDS": "Keywords to blacklist/block (e.g. hdcam camrip predvd). Space-separated.",
     "FFMPEG_CMDS": "Custom FFmpeg command presets. Dict format.",
     "FILELION_API": "FileLion.cc API key for direct download support.",
     "MEDIA_STORE": "Store media metadata for re-upload. Default: True.",
@@ -563,6 +565,11 @@ async def edit_variable(_, message, pre_message, key):
         for x in fx:
             x = x.lstrip(".")
             excluded_extensions.append(x.strip().lower())
+    elif key == "BLACKLISTED_KEYWORDS":
+        kw_list = value.split()
+        blacklisted_keywords.clear()
+        for x in kw_list:
+            blacklisted_keywords.append(x.strip().lower())
     elif key == "GDRIVE_ID":
         if drives_names and drives_names[0] == "Main":
             drives_ids[0] = value

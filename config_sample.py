@@ -19,6 +19,9 @@ STATUS_UPDATE_INTERVAL = 15
 FILELION_API = ""
 STREAMWISH_API = ""
 EXCLUDED_EXTENSIONS = ""
+BLACKLISTED_KEYWORDS = (
+    "hdcam camrip hdtc hdts predvd hc-hd 2160phd 1080phd 720phd hd-cam cam-rip"
+)
 INC_TASK_NOTIFY = False
 INC_TASK_RESUME = False
 YT_DLP_OPTIONS = ""

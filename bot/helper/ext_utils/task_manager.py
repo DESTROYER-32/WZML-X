@@ -414,3 +414,27 @@ async def pre_task_check(message):
     if msg:
         return _format_result()
     return None, None
+
+
+async def check_blacklisted_keywords(listener, name_or_link=None):
+    if not name_or_link:
+        name_or_link = listener.name or listener.link
+    if not name_or_link or not listener.blacklisted_keywords:
+        return False, None
+
+    import re
+    from urllib.parse import unquote
+
+    text = unquote(str(name_or_link)).replace("+", " ").lower()
+    for kw in listener.blacklisted_keywords:
+        if not kw:
+            continue
+        kw_clean = kw.lower().strip()
+        pattern = (
+            r"(^|[\s_.\-+=!\[\]()/\\])"
+            + re.escape(kw_clean)
+            + r"($|[\s_.\-+=!\[\]()/\\])"
+        )
+        if re.search(pattern, text):
+            return True, kw
+    return False, None

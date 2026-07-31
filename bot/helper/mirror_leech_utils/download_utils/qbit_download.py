@@ -14,7 +14,11 @@ from .... import (
 from ....core.config_manager import Config
 from ....core.torrent_manager import TorrentManager
 from ...ext_utils.bot_utils import bt_selection_buttons
-from ...ext_utils.task_manager import check_running_tasks, stop_duplicate_check
+from ...ext_utils.task_manager import (
+    check_running_tasks,
+    stop_duplicate_check,
+    check_blacklisted_keywords,
+)
 from ...listeners.qbit_listener import on_download_start
 from ...mirror_leech_utils.status_utils.qbit_status import QbittorrentStatus
 from ...telegram_helper.message_utils import (
@@ -45,6 +49,14 @@ def _get_hash_file(fpath):
 async def add_qb_torrent(listener, path, ratio, seed_time):
     if Config.DISABLE_TORRENTS:
         await listener.on_download_error("Torrents are disabled in the configuration.")
+        return
+    is_bl, bl_kw = await check_blacklisted_keywords(
+        listener, listener.name or listener.link
+    )
+    if is_bl:
+        await listener.on_download_error(
+            f"Task cancelled! Name/Link contains blacklisted keyword: <code>{bl_kw}</code>"
+        )
         return
     if listener.name:
         msg, button = await stop_duplicate_check(listener)

@@ -17,7 +17,11 @@ from ...core.torrent_manager import TorrentManager
 from ..ext_utils.bot_utils import new_task
 from ..ext_utils.files_utils import clean_unwanted
 from ..ext_utils.status_utils import get_readable_time, get_task_by_gid
-from ..ext_utils.task_manager import stop_duplicate_check, limit_checker
+from ..ext_utils.task_manager import (
+    stop_duplicate_check,
+    limit_checker,
+    check_blacklisted_keywords,
+)
 from ..mirror_leech_utils.status_utils.qbit_status import QbittorrentStatus
 from ..telegram_helper.message_utils import update_status_message
 
@@ -61,10 +65,17 @@ async def _on_seed_finish(tor):
 @new_task
 async def _stop_duplicate(tor):
     if task := await get_task_by_gid(tor.hash[:12]):
+        task.listener.name = tor.content_path.rsplit("/", 1)[-1].rsplit(".!qB", 1)[0]
+        is_bl, bl_kw = await check_blacklisted_keywords(
+            task.listener, task.listener.name
+        )
+        if is_bl:
+            await _on_download_error(
+                f"Task cancelled! Name contains blacklisted keyword: <code>{bl_kw}</code>",
+                tor,
+            )
+            return
         if task.listener.stop_duplicate:
-            task.listener.name = tor.content_path.rsplit("/", 1)[-1].rsplit(".!qB", 1)[
-                0
-            ]
             msg, button = await stop_duplicate_check(task.listener)
             if msg:
                 await _on_download_error(msg, tor, button)
