@@ -73,6 +73,7 @@ from .users_settings import (
     send_user_settings,
 )
 from .ytdlp import ytdl, ytdl_leech
+from .internal_api import start_internal_api
 
 __all__ = [
     "memory_stats",
