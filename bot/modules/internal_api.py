@@ -221,9 +221,10 @@ async def start_internal_api():
 
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8085)
+    api_port = int(os.environ.get("WZML_API_PORT", 8086))
+    site = web.TCPSite(runner, "0.0.0.0", api_port)
     await site.start()
-    LOGGER.info("WZML-X Internal REST API listening on 0.0.0.0:8085")
+    LOGGER.info(f"WZML-X Internal REST API listening on 0.0.0.0:{api_port}")
     return site
 
 
