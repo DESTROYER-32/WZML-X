@@ -1,3 +1,6 @@
+import base64
+import codecs
+import json
 from re import search
 from urllib.parse import urlparse
 
@@ -6,6 +9,7 @@ from curl_cffi import requests as cffi_requests
 from ...ext_utils.exceptions import DirectDownloadLinkException
 
 _OUO_DOMAINS = ("ouo.io", "ouo.press")
+_GREENMOTORS_DOMAINS = ("greenmotors.club", "greenmotors.cc", "greenmountmotors.com")
 
 _CSRF_PATTERN = (
     r'<input[^>]*\bname="_token"[^>]*\bvalue="([^"]*)"'
@@ -14,13 +18,19 @@ _CSRF_PATTERN = (
 
 
 def is_url_shortener(domain):
-    return any(d in domain for d in _OUO_DOMAINS) if domain else False
+    return (
+        any(d in domain for d in _OUO_DOMAINS + _GREENMOTORS_DOMAINS)
+        if domain
+        else False
+    )
 
 
 def bypass_shortener(link):
     domain = urlparse(link).hostname or ""
     if any(d in domain for d in _OUO_DOMAINS):
         return _ouo(link)
+    elif any(d in domain for d in _GREENMOTORS_DOMAINS):
+        return _greenmotors(link)
     raise DirectDownloadLinkException(f"ERROR: No bypasser for {domain}")
 
 
@@ -96,3 +106,39 @@ def _ouo(link):
         raise
     except Exception as e:
         raise DirectDownloadLinkException(f"ERROR: ouo bypass failed: {e}") from e
+
+
+def _greenmotors(link):
+    """Resolve greenmotors redirector links (greenmotors.club / greenmotors.cc)."""
+    if "?id=" not in link:
+        raise DirectDownloadLinkException(
+            "ERROR: greenmotors URL requires the '?id=' query parameter (intermediate pages like /homelander/ cannot be bypassed alone)"
+        )
+    try:
+        with cffi_requests.Session(impersonate="chrome136", timeout=30) as s:
+            res = s.get(link, allow_redirects=True)
+            match_payload = search(
+                r"s\(\s*['\"]o['\"]\s*,\s*['\"]([^'\"]+)['\"]", res.text
+            )
+            if not match_payload:
+                raise DirectDownloadLinkException(
+                    "ERROR: greenmotors payload not found on page"
+                )
+            raw = match_payload.group(1)
+
+            # Base64 -> Base64 -> ROT13 -> Base64 -> JSON
+            s1 = base64.b64decode(raw).decode("utf-8")
+            s2 = base64.b64decode(s1).decode("utf-8")
+            s3 = codecs.decode(s2, "rot_13")
+            data = json.loads(base64.b64decode(s3).decode("utf-8"))
+            if "o" not in data:
+                raise DirectDownloadLinkException(
+                    "ERROR: greenmotors decoded data missing 'o' key"
+                )
+            return base64.b64decode(data["o"]).decode("utf-8")
+    except DirectDownloadLinkException:
+        raise
+    except Exception as e:
+        raise DirectDownloadLinkException(
+            f"ERROR: greenmotors bypass failed: {e}"
+        ) from e
